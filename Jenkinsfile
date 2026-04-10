@@ -17,7 +17,7 @@ pipeline {
         AWS_REGION      = 'us-east-1'
         ECR_REPO_NAME   = 'jenkins-eks'
         EKS_CLUSTER     = 'k8s-demo'
-        ECR_REGISTRY    = "{067680447977.dkr.ecr.us-east-1.amazonaws.com}"
+        ECR_REGISTRY    = "067680447977.dkr.ecr.us-east-1.amazonaws.com"
         IMAGE_TAG       = "${BUILD_NUMBER}"
         FULL_IMAGE      = "${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG}"
     }
