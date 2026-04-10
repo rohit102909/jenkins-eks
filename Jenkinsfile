@@ -13,22 +13,16 @@ pipeline {
     agent any
 
     environment {
-        // ─── CHANGE THESE TO MATCH YOUR AWS SETUP ───
-        AWS_ACCOUNT_ID  = '306607894956'       // e.g., 123456789012
-        AWS_REGION      = 'us-east-1'                 // e.g., us-east-1, ap-south-1
-        ECR_REPO_NAME   = 'nimbus/dec25'                // ECR repository name
-        EKS_CLUSTER     = 'k8s-demo'        // EKS cluster name
-        // ─── AUTO-COMPUTED (do not change) ───
+        AWS_ACCOUNT_ID  = '306607894956'
+        AWS_REGION      = 'us-east-1'
+        ECR_REPO_NAME   = 'nimbus/dec25'
+        EKS_CLUSTER     = 'k8s-demo'
         ECR_REGISTRY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG       = "${BUILD_NUMBER}"
         FULL_IMAGE      = "${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG}"
     }
 
     stages {
-
-        // ────────────────────────────────────────────
-        // Stage 1: Checkout source code from Git
-        // ────────────────────────────────────────────
         stage('Checkout') {
             steps {
                 echo '📥 Pulling source code from Git...'
@@ -36,9 +30,6 @@ pipeline {
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 2: Build JAR using Maven
-        // ────────────────────────────────────────────
         stage('Build with Maven') {
             steps {
                 echo '🔨 Building application with Maven...'
@@ -46,9 +37,6 @@ pipeline {
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 3: Run unit tests
-        // ────────────────────────────────────────────
         stage('Run Tests') {
             steps {
                 echo '🧪 Running unit tests...'
@@ -56,9 +44,6 @@ pipeline {
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 4: Build Docker image
-        // ────────────────────────────────────────────
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image: ${FULL_IMAGE}"
@@ -67,72 +52,50 @@ pipeline {
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 5: Login to ECR and push Docker image
-        // ────────────────────────────────────────────
         stage('Push to ECR') {
             steps {
                 echo '📤 Pushing Docker image to Amazon ECR...'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
-                    sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        docker push ${FULL_IMAGE}
-                        docker push ${ECR_REGISTRY}/${ECR_REPO_NAME}:latest
-                    """
-                }
+                sh """
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    docker push ${FULL_IMAGE}
+                    docker push ${ECR_REGISTRY}/${ECR_REPO_NAME}:latest
+                """
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 6: Deploy to EKS using kubectl
-        // ────────────────────────────────────────────
         stage('Deploy to EKS') {
             steps {
                 echo '🚀 Deploying to Amazon EKS...'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
-                    sh """
-                        # Update kubeconfig for the EKS cluster
-                        aws eks update-kubeconfig \
-                            --name ${EKS_CLUSTER} \
-                            --region ${AWS_REGION}
+                sh """
+                    aws eks update-kubeconfig \
+                        --name ${EKS_CLUSTER} \
+                        --region ${AWS_REGION}
 
-                        # Replace placeholder image in deployment manifest
-                        sed -i 's|IMAGE_PLACEHOLDER|${FULL_IMAGE}|g' k8s/deployment.yaml
+                    sed -i 's|IMAGE_PLACEHOLDER|${FULL_IMAGE}|g' k8s/deployment.yaml
 
-                        # Apply Kubernetes manifests
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
 
-                        # Wait for rollout to complete
-                        kubectl rollout status deployment/devops-demo \
-                            --timeout=120s
-                    """
-                }
+                    kubectl rollout status deployment/devops-demo \
+                        --timeout=120s
+                """
             }
         }
 
-        // ────────────────────────────────────────────
-        // Stage 7: Verify Deployment
-        // ────────────────────────────────────────────
         stage('Verify') {
             steps {
                 echo '✅ Verifying deployment...'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
-                                  credentialsId: 'aws-credentials']]) {
-                    sh """
-                        echo "─── Pods ───"
-                        kubectl get pods -l app=devops-demo
-                        echo ""
-                        echo "─── Service ───"
-                        kubectl get svc devops-demo-service
-                        echo ""
-                        echo "─── Deployment ───"
-                        kubectl get deployment devops-demo
-                    """
-                }
+                sh """
+                    echo "─── Pods ───"
+                    kubectl get pods -l app=devops-demo
+                    echo ""
+                    echo "─── Service ───"
+                    kubectl get svc devops-demo-service
+                    echo ""
+                    echo "─── Deployment ───"
+                    kubectl get deployment devops-demo
+                """
             }
         }
     }
@@ -145,7 +108,6 @@ pipeline {
             echo '❌ Pipeline failed. Check logs above for details.'
         }
         always {
-            // Clean up Docker images on the Jenkins server to save disk space
             sh "docker rmi ${FULL_IMAGE} || true"
             sh "docker rmi ${ECR_REGISTRY}/${ECR_REPO_NAME}:latest || true"
         }
