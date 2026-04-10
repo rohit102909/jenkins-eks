@@ -13,11 +13,11 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCOUNT_ID  = '306607894956'
+        AWS_ACCOUNT_ID  = '067680447977'
         AWS_REGION      = 'us-east-1'
-        ECR_REPO_NAME   = 'nimbus/dec25'
+        ECR_REPO_NAME   = 'jenkins-eks  '
         EKS_CLUSTER     = 'k8s-demo'
-        ECR_REGISTRY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REGISTRY    = "{067680447977.dkr.ecr.us-east-1.amazonaws.com/jenkins-eks}"
         IMAGE_TAG       = "${BUILD_NUMBER}"
         FULL_IMAGE      = "${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG}"
     }
