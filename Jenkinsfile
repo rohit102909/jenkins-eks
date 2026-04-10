@@ -69,8 +69,8 @@ pipeline {
                 echo '🚀 Deploying to Amazon EKS...'
                 sh """
                     aws eks update-kubeconfig \
-                        --name ${k8s-demo} \
-                        --region ${us-east-1}
+                        --name ${EKS_CLUSTER} \
+                        --region ${AWS_REGION}
 
                     sed -i 's|IMAGE_PLACEHOLDER|${FULL_IMAGE}|g' k8s/deployment.yaml
 
