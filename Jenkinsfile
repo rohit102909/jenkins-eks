@@ -56,7 +56,7 @@ pipeline {
             steps {
                 echo '📤 Pushing Docker image to Amazon ECR...'
                 sh """
-                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    aws ecr get-login-password --region ${us-east-1} | \
                     docker login --username AWS --password-stdin ${ECR_REGISTRY}
                     docker push ${FULL_IMAGE}
                     docker push ${ECR_REGISTRY}/${ECR_REPO_NAME}:latest
@@ -69,8 +69,8 @@ pipeline {
                 echo '🚀 Deploying to Amazon EKS...'
                 sh """
                     aws eks update-kubeconfig \
-                        --name ${EKS_CLUSTER} \
-                        --region ${AWS_REGION}
+                        --name ${k8s-demo} \
+                        --region ${us-east-1}
 
                     sed -i 's|IMAGE_PLACEHOLDER|${FULL_IMAGE}|g' k8s/deployment.yaml
 
